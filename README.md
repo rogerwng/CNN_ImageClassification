@@ -6,7 +6,6 @@ Models evaluated on FashionMNIST and Imagenette (subset of Imagenet).
 Many models use same boilerplate code for training loops, forward and loss methods, etc.
 Larger models trained on AWS EC2 Instance (g4dn.xlarge).
 
-Notebooks contains Jupyter Notebooks which some models were trained in. Larger models are trained on the EC2 instance and then parameters loaded into notebooks.
-Notebooks also include some statistics on model performance such as precision and recall.
+Notebooks contains Jupyter Notebooks which some models were trained in. Model notebooks also include classification scores.
 
 Cloud Training contains files uploaded to EC2 instance to train large models.
