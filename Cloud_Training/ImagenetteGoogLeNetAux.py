@@ -38,6 +38,6 @@ print(f'New LR: {model.lr}')
 train(model,trainloader,valloader,epochs=50,delta=0)
 
 # checkpoint
-torch.save(model.state_dict(),'ImagenetteGoogLeNeAux.params')
+torch.save(model.state_dict(),'ImagenetteGoogLeNetAux.params')
 
 # val acc 0.813 after 47 epochs
