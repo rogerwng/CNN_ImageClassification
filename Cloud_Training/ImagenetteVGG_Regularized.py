@@ -5,7 +5,7 @@
 
 from utils.Training import train
 from utils.Datasets import Imagenette
-from utils.ClassificationModel import VGGNet_Norm, initialize
+from utils.ClassificationModel import VGGNet_Norm, initialize_xa
 
 import torch
 from torchvision import transforms
@@ -27,7 +27,7 @@ cuda = torch.device('cuda')
 blocks_VGG_A = [(1,64),(1,128),(2,256),(2,512),(2,512)] # VGG A config, baseline for pretraining larger VGG
 model = VGGNet_Norm(10,blocks_VGG_A,lr=0.01,momentum=0.9, weight_decay=0.0005)
 # initialize weights w dummy input
-model.initialize_weights(next(iter(trainloader))[0],initialize)
+model.initialize_weights(next(iter(trainloader))[0],initialize_xa)
 
 # load model params from pretrained VGG w/o batch norm
 pretrained = torch.load('ImagenetteVGG_A.params')
