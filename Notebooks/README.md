@@ -5,7 +5,7 @@ I noticed during experimentation an issue with calling argmax on PyTorch tensors
   
 Imagenette is a subset of ImageNet.   
   
-Models implemented and best scores:  
+## Models implemented and best scores:  
 MLP on FashionMNIST - 0.860  
 LeNet on FashionMNIST - 0.860  
 AlexNet on FashionMNIST - 0.841  
