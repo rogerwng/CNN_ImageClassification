@@ -84,8 +84,8 @@ def train(model, trainloader, valloader, epochs, delta=0.003, top_3 = False):
         else:
             pbar.set_description(f'val_acc: {val_acc:.3f} train_loss: {train_loss:.3f}')
 
-        # check for early stopping
-        if stopper.checkForStop(val_acc):
+        # check for early stopping, stop when train_loss = zero since no further training will happen
+        if stopper.checkForStop(val_acc) or train_loss <= 0.0003:
             break
 
     pbar.close()

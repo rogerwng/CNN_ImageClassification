@@ -292,3 +292,52 @@ class GoogLeNet_Aux(GoogLeNet):
             return F.cross_entropy(logit_3,labels) + F.cross_entropy(self.logit_2,labels) + F.cross_entropy(self.logit_1,labels)
         else:
             return F.cross_entropy(logit_3,labels)
+        
+# Residual Block
+class ResidualBlock(nn.Module):
+    def __init__(self,nchannels,use_1x1=False,strides=1):
+        super().__init__()
+        self.use_1x1 = use_1x1
+
+        # 2 3x3 conv w same output channels, followed by batch norm and ReLU, add input before 2nd ReLU
+        self.conv = nn.Sequential(nn.LazyConv2d(nchannels,kernel_size=3,padding=1,stride=strides),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                  nn.LazyConv2d(nchannels,kernel_size=3,padding=1),nn.LazyBatchNorm2d())
+        # optional 1x1 conv specified by use_1x1, needed to keep input and output dimensionality the same for addition operation
+        self.optconv = nn.LazyConv2d(nchannels,kernel_size=1,stride=strides) if use_1x1 else None
+        # final (2nd) ReLU
+        self.relu2 = nn.ReLU()
+
+    def forward(self, x):
+        # apply conv and add input before 2nd ReLU, use 1x1 if specified
+        Y = self.conv(x)
+        x = self.optconv(x) if self.use_1x1 else x
+        Y += x
+        return self.relu2(Y)
+    
+# ResNet Model
+class ResNet(ClassificationModel):
+    def __init__(self,nclasses,arch,lr=0.1,momentum=0,weight_decay=0):
+        super().__init__()
+        self.lr = lr
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+
+        # first block, initial convs: 7x7 (64) stride 3 pad 2, max pool 3x3 stride 2 pad 1, batch norm and ReLU after conv
+        self.block_1 = nn.Sequential(nn.LazyConv2d(64,kernel_size=7,stride=2,padding=3),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                     nn.MaxPool2d(kernel_size=3,stride=2,padding=1))
+        # 4 ResNet blocks, made up of sequence of Residual blocks w same channels
+        self.net = nn.Sequential(self.block_1)
+        # arch a list defining Residual block architectures, [ (nresiduals,nchannels), ()....], *b to unpack tuple
+        for i,b in enumerate(arch):
+            self.net.add_module(f'block_{i+2}', self.ResNetBlock(*b, first=(i==0)))
+        # prediction head, global avg pooling and FC layer
+        self.net.add_module('pred', nn.Sequential(nn.AdaptiveAvgPool2d((1,1)),nn.Flatten(),
+                                                  nn.LazyLinear(nclasses)))
+
+    # ResNet block, first residual block reduces dimensions
+    def ResNetBlock(self,nresiduals,nchannels,first=False):
+        blocks = []
+        for i in range(nresiduals):
+            append = ResidualBlock(nchannels=nchannels,use_1x1=True,strides=2) if i==0 and not first else ResidualBlock(nchannels=nchannels)
+            blocks.append(append)
+        return nn.Sequential(*blocks)
