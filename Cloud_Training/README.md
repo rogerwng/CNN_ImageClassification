@@ -10,4 +10,6 @@ VGG on Imagenette                           - 0.695
 VGG on Imagenette (pretrained + batch norm) - 0.800  
 GoogLeNet (Inception) on Fashion            - 0.835  
 GoogLeNet on Imagenette                     - 0.800  
-GoogLeNet on Mammals                        - 0.589 (top-1), 0.627 (top-3)
+GoogLeNet on Mammals                        - 0.589 (top-1), 0.627 (top-3)  
+ResNet on Fashion                           - 0.935  
+ResNet on Imagenette                        - 0.764
