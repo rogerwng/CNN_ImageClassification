@@ -341,3 +341,53 @@ class ResNet(ClassificationModel):
             append = ResidualBlock(nchannels=nchannels,use_1x1=True,strides=2) if i==0 and not first else ResidualBlock(nchannels=nchannels)
             blocks.append(append)
         return nn.Sequential(*blocks)
+    
+# ResNeXt Block (with grouped convolutions)
+class ResidualNeXtBlock(nn.Module):
+    def __init__(self,nchannels,g,b,use_1x1=False,strides=1):
+        super().__init__()
+        self.use_1x1 = use_1x1
+        bot_channels = int(round(nchannels * b))
+
+        # 3x3 between 1x1 conv, b/g number of groups, batch norm and ReLU after each conv, add input before final ReLU
+        self.net = nn.Sequential(nn.LazyConv2d(bot_channels,kernel_size=1,stride=1),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                 nn.LazyConv2d(bot_channels,kernel_size=3,stride=strides,padding=1,groups=bot_channels//g),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                 nn.LazyConv2d(bot_channels,kernel_size=1,stride=1),nn.LazyBatchNorm2d())
+        # optional 1x1 conv
+        self.optconv = nn.LazyConv2d(nchannels,kernel_size=1,stride=strides) if use_1x1 else None
+        # final relu
+        self.relu3 = nn.ReLU()
+
+    def forward(self,x):
+        Y = self.net(x)
+        x = self.optconv(x) if self.use_1x1 else x
+        Y += x
+        return self.relu3(Y)
+    
+# ResNeXt Model
+class ResNeXt(ClassificationModel):
+    def __init__(self,nclasses,arch,lr=0.1,momentum=0,weight_decay=0):
+        super().__init__()
+        self.lr = lr
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+
+        # first block, initial convs: 7x7 (64) stride 3 pad 2, max pool 3x3 stride 2 pad 1, batch norm and ReLU after conv
+        self.block_1 = nn.Sequential(nn.LazyConv2d(64,kernel_size=7,stride=2,padding=3),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                     nn.MaxPool2d(kernel_size=3,stride=2,padding=1))
+        # 4 ResNet blocks, made up of sequence of Residual blocks w same channels
+        self.net = nn.Sequential(self.block_1)
+        # arch a list defining Residual block architectures, [ (nresiduals,nchannels), ()....], *b to unpack tuple
+        for i,b in enumerate(arch):
+            self.net.add_module(f'block_{i+2}', self.ResNeXtBlock(*b, first=(i==0)))
+        # prediction head, global avg pooling and FC layer
+        self.net.add_module('pred', nn.Sequential(nn.AdaptiveAvgPool2d((1,1)),nn.Flatten(),
+                                                  nn.LazyLinear(nclasses)))
+
+    # ResNet block, first residual block reduces dimensions
+    def ResNeXtBlock(self,nresiduals,nchannels,g,b,first=False):
+        blocks = []
+        for n in range(nresiduals):
+            append = ResidualNeXtBlock(nchannels=nchannels,g=g,b=b,use_1x1=True,strides=2) if n==0 and not first else ResidualNeXtBlock(nchannels=nchannels,g=g,b=b)
+            blocks.append(append)
+        return nn.Sequential(*blocks)
