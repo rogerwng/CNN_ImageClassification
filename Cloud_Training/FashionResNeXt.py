@@ -13,7 +13,7 @@ valloader = data.val_dataloader()
 
 # initialize model
 cuda = torch.device('cuda')
-arch_resnext = [(2,64,16,1),(2,128,16,1),(2,256,16,1),(2,512,16,1)]
+arch_resnext = [(2,64,16),(2,128,32),(2,256,32),(2,512,32)]
 model = ResNeXt(10,arch_resnext,lr=0.01,momentum=0.9,weight_decay=0.005)
 # initialize weights
 model.initialize_weights(next(iter(trainloader))[0],initialize_xa)
@@ -29,5 +29,5 @@ train(model,trainloader,valloader,epochs=10)
 # checkpoint
 torch.save(model.state_dict(),'FashionResNeXt.params')
 
-# very fast training, 0.87 after first epoch
-# val acc 0.935 after 18 epochs, no further progress bc training loss goes to zero here
+# very fast training, 0.881 after first epoch
+# val acc 0.932 after 20 epochs

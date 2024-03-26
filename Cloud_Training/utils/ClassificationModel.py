@@ -344,15 +344,15 @@ class ResNet(ClassificationModel):
     
 # ResNeXt Block (with grouped convolutions)
 class ResidualNeXtBlock(nn.Module):
-    def __init__(self,nchannels,g,b,use_1x1=False,strides=1):
+    def __init__(self,nchannels,groups,use_1x1=False,strides=1):
         super().__init__()
         self.use_1x1 = use_1x1
-        bot_channels = int(round(nchannels * b))
+       # bot_channels = int(round(nchannels * b))
 
         # 3x3 between 1x1 conv, b/g number of groups, batch norm and ReLU after each conv, add input before final ReLU
-        self.net = nn.Sequential(nn.LazyConv2d(bot_channels,kernel_size=1,stride=1),nn.LazyBatchNorm2d(),nn.ReLU(),
-                                 nn.LazyConv2d(bot_channels,kernel_size=3,stride=strides,padding=1,groups=bot_channels//g),nn.LazyBatchNorm2d(),nn.ReLU(),
-                                 nn.LazyConv2d(bot_channels,kernel_size=1,stride=1),nn.LazyBatchNorm2d())
+        self.net = nn.Sequential(nn.LazyConv2d(nchannels,kernel_size=1,stride=1),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                 nn.LazyConv2d(nchannels,kernel_size=3,stride=strides,padding=1,groups=groups),nn.LazyBatchNorm2d(),nn.ReLU(),
+                                 nn.LazyConv2d(nchannels,kernel_size=1,stride=1),nn.LazyBatchNorm2d())
         # optional 1x1 conv
         self.optconv = nn.LazyConv2d(nchannels,kernel_size=1,stride=strides) if use_1x1 else None
         # final relu
@@ -385,9 +385,9 @@ class ResNeXt(ClassificationModel):
                                                   nn.LazyLinear(nclasses)))
 
     # ResNet block, first residual block reduces dimensions
-    def ResNeXtBlock(self,nresiduals,nchannels,g,b,first=False):
+    def ResNeXtBlock(self,nresiduals,nchannels,groups,first=False):
         blocks = []
         for n in range(nresiduals):
-            append = ResidualNeXtBlock(nchannels=nchannels,g=g,b=b,use_1x1=True,strides=2) if n==0 and not first else ResidualNeXtBlock(nchannels=nchannels,g=g,b=b)
+            append = ResidualNeXtBlock(nchannels=nchannels,groups=groups,use_1x1=True,strides=2) if n==0 and not first else ResidualNeXtBlock(nchannels=nchannels,groups=groups)
             blocks.append(append)
         return nn.Sequential(*blocks)
